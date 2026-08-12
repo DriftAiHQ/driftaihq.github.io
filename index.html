@@ -1,0 +1,568 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>DriftAI — the market closes, prices don't</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0A1322;--panel:#0E1930;--line:#1B2A44;--txt:#E8EDF5;--mut:#7A8699;--teal:#3EE6C1;--blue:#5B8CFF;--rose:#FF7A90;--grad:linear-gradient(90deg,#3EE6C1,#5B8CFF)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--txt);font-family:Inter,-apple-system,sans-serif;font-size:15px;overflow-x:hidden}
+.mono{font-family:ui-monospace,SF Mono,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;margin:0 auto;padding:0 40px}
+@media(max-width:700px){.wrap{padding:0 18px}}
+.glow{position:fixed;border-radius:50%;filter:blur(120px);opacity:0.14;pointer-events:none;z-index:0}
+.g1{width:520px;height:520px;background:#3EE6C1;top:-160px;right:-120px}
+.g2{width:560px;height:560px;background:#5B8CFF;bottom:-200px;left:-160px}
+.top,.page,footer{position:relative;z-index:1}
+.top{position:sticky;top:0;z-index:10;background:rgba(10,19,34,0.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;height:62px;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.brand svg{width:30px;height:30px}
+.brand b{font-family:Space Grotesk;font-size:19px;font-weight:600;letter-spacing:-0.3px}
+.brand b span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mkt{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:10.5px;letter-spacing:1.2px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);color:var(--mut);white-space:nowrap}
+.mkt i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.mkt.open i{background:var(--teal);animation:pulse 2s infinite}
+.mkt.closed i{background:var(--rose)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+nav{display:flex;gap:2px;flex-wrap:wrap}
+nav a{color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;padding:7px 11px;border-radius:8px;cursor:pointer}
+nav a:hover{color:var(--txt)}
+nav a.on{color:var(--txt);background:var(--panel)}
+.page{display:none}.page.on{display:block}
+.page.on .section,.page.on .hero,.page.on .stats{animation:fadeUp 0.45s ease-out}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.page.on .section,.page.on .hero,.page.on .stats{animation:none}.mkt i{animation:none!important}.rail .in{animation:none}.draw{animation:none!important;stroke-dashoffset:0!important}.tile.hot{animation:none!important}}
+.hero{display:grid;grid-template-columns:1.1fr 0.9fr;gap:60px;align-items:center;padding:80px 0 40px}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding:50px 0 30px}}
+.eyebrow{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:11.5px;letter-spacing:2px;color:var(--teal);text-transform:uppercase;margin-bottom:18px}
+.eyebrow i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--teal);margin-right:9px;animation:pulse 2s infinite}
+h1{font-family:Space Grotesk;font-size:clamp(38px,5vw,62px);font-weight:700;letter-spacing:-1.5px;line-height:1.04;margin:0 0 20px}
+h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{color:var(--mut);font-size:17px;line-height:1.65;max-width:520px;margin:0 0 30px}
+.ctas{display:flex;gap:12px;flex-wrap:wrap}
+.btn{font-family:Inter;font-size:14px;font-weight:600;padding:12px 22px;border-radius:10px;cursor:pointer;border:none}
+.btn.pri{background:var(--grad);color:var(--ink)}
+.btn.sec{background:var(--panel);color:var(--txt);border:1px solid var(--line)}
+.btn:hover{filter:brightness(1.1)}
+.heromark{width:100%;max-width:460px;margin:0 auto;display:block}
+.clock{margin:6px 0 34px;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:16px 22px;display:inline-flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+.clock .cd{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:26px;font-weight:600}
+.clock .cl{color:var(--mut);font-size:12.5px}
+.now{margin:26px 0 4px;background:linear-gradient(135deg,rgba(62,230,193,0.08),rgba(91,140,255,0.08));border:1px solid #27405f;border-radius:16px;padding:22px 26px;cursor:pointer;transition:border-color 0.2s}
+.now:hover{border-color:var(--teal)}
+.now .nb{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:11px;letter-spacing:2px;color:var(--teal);text-transform:uppercase;margin-bottom:8px}
+.now .nb i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--teal);margin-right:8px;animation:pulse 2s infinite}
+.now .nh{font-family:Space Grotesk;font-size:21px;font-weight:600;line-height:1.4}
+.now .ns{color:var(--mut);font-size:12.5px;margin-top:8px;font-family:ui-monospace,SF Mono,Menlo,monospace}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:14px 0 70px}
+@media(max-width:700px){.stats{grid-template-columns:1fr}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;transition:border-color 0.2s}
+.stat:hover{border-color:#27405f}
+.stat .v{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:30px;font-weight:600;margin-bottom:5px}
+.stat .l{color:var(--mut);font-size:12.5px;letter-spacing:0.4px;text-transform:uppercase}
+.rail{border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap;padding:12px 0;background:var(--panel)}
+.rail .in{display:inline-block;animation:roll 45s linear infinite}
+@keyframes roll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.rail span{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:13px;margin-right:44px;color:var(--mut)}
+.rail b{color:var(--txt);font-weight:600;margin-right:8px}
+.section{padding:44px 0 30px}
+.stitle{font-family:Space Grotesk;font-size:24px;font-weight:600;letter-spacing:-0.4px;margin:0 0 4px}
+.ssub{color:var(--mut);font-size:13.5px;margin:0 0 24px}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+@media(max-width:900px){.chips{grid-template-columns:1fr 1fr}}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.chip .cv2{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:19px;font-weight:600}
+.chip .cl{color:var(--mut);font-size:11px;letter-spacing:0.8px;text-transform:uppercase;margin-top:3px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mut);padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:13px 12px;border-bottom:1px solid #131F35;font-size:15px}
+tbody tr{cursor:pointer;transition:background 0.12s}
+tbody tr:hover{background:var(--panel);box-shadow:inset 3px 0 0 var(--teal)}
+.tk{font-weight:600;font-family:Space Grotesk}
+.pos{color:var(--teal)}.neg{color:var(--rose)}
+.tag{font-size:10px;padding:3px 8px;border-radius:10px;letter-spacing:0.6px;font-weight:600}
+.LIVE{background:#0E3A2F;color:var(--teal)}.THIN{background:#33301A;color:#E8D06B}.STALE{background:#2A1B22;color:#8A93A6}
+.spark{width:84px;height:26px}
+.age{color:var(--mut);font-size:12px;margin-top:18px}
+.ranges{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.ranges button{background:var(--panel);border:1px solid var(--line);color:var(--mut);border-radius:8px;padding:5px 13px;font-size:12.5px;cursor:pointer;font-family:ui-monospace,SF Mono,Menlo,monospace}
+.ranges button.on{color:var(--ink);background:var(--grad);border:none;font-weight:700}
+.ranges button.livebtn{border-color:var(--teal);color:var(--teal);font-weight:700}
+.ranges button.act{border-color:var(--blue);color:var(--blue);font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:1000px){.grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.mini{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:transform 0.16s,border-color 0.16s,box-shadow 0.16s}
+.mini:hover{border-color:var(--teal);transform:translateY(-3px);box-shadow:0 10px 30px rgba(62,230,193,0.08)}
+.mini .mh{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:2px}
+.mini .mp{color:var(--mut);font-size:12px;margin-bottom:8px}
+.mini canvas{border:none;background:transparent;width:100%}
+#back{color:var(--mut);cursor:pointer;font-size:14px;margin-bottom:14px;display:inline-block}
+#back:hover{color:var(--txt)}
+#ctitle{font-family:Space Grotesk;font-size:22px;font-weight:600;margin:0 0 4px}
+#cstats{color:var(--mut);font-size:13px;margin-bottom:12px;font-family:ui-monospace,SF Mono,Menlo,monospace}
+#cv{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:14px;cursor:grab;touch-action:pan-y}
+#cv.drag{cursor:grabbing}
+.hint{color:#57627A;font-size:11.5px;margin-top:8px}
+.legend{display:flex;gap:22px;font-size:12.5px;color:var(--mut);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:7px}
+/* heatmap */
+.hm{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
+.tile{border-radius:12px;padding:14px 14px 12px;cursor:pointer;border:1px solid var(--line);transition:transform 0.15s}
+.tile:hover{transform:scale(1.04)}
+.tile .t1{font-family:Space Grotesk;font-weight:600;font-size:15px}
+.tile .t2{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:16px;font-weight:600;margin-top:4px}
+.tile .t3{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:11px;color:var(--mut);margin-top:2px}
+.tile.hot{animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{0%,100%{filter:brightness(1)}50%{filter:brightness(1.28)}}
+/* records */
+.rec{display:flex;align-items:center;gap:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:12px;cursor:pointer;transition:border-color 0.15s;max-width:760px}
+.rec:hover{border-color:var(--teal)}
+.rec .rk{font-family:Space Grotesk;font-size:22px;font-weight:700;color:#2A3C5C;min-width:44px}
+.rec:nth-child(1) .rk{color:#E8D06B}.rec:nth-child(2) .rk{color:#B9C2D4}.rec:nth-child(3) .rk{color:#C08A5A}
+.rec .rt{flex:1}
+.rec .rt .a{font-family:Space Grotesk;font-weight:600;font-size:16px}
+.rec .rt .b{color:var(--mut);font-size:12px;font-family:ui-monospace,SF Mono,Menlo,monospace;margin-top:2px}
+.rec .rv{font-family:ui-monospace,SF Mono,Menlo,monospace;font-size:20px;font-weight:600}
+.ghost{max-width:640px;border:1px dashed #2A3C5C;border-radius:14px;padding:24px;opacity:0.75}
+.ghost .gh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ghost .badge{font-size:10px;letter-spacing:0.8px;padding:3px 9px;border-radius:10px;background:#0E3A2F;color:var(--teal);font-weight:700}
+.ghost p{color:var(--mut);line-height:1.6;margin:0;font-size:14px}
+.ghost .mono{font-size:13px}
+.mcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;max-width:1100px}
+@media(max-width:1000px){.mcards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px;line-height:1.7;font-size:14.5px;transition:border-color 0.2s}
+.card:hover{border-color:#27405f}
+.card svg{width:44px;height:44px;margin-bottom:14px;display:block}
+.card h3{font-family:Space Grotesk;margin:0 0 8px;font-size:16.5px}
+.card p{color:#B9C2D4;margin:0}
+.empty{color:var(--mut);font-size:14px;margin-bottom:20px}
+footer{color:#57627A;font-size:11.5px;line-height:1.6;margin-top:50px;border-top:1px solid var(--line);padding:20px 0 34px}
+</style></head><body>
+<div class="glow g1"></div><div class="glow g2"></div>
+
+<div class="top"><div class="wrap">
+<div class="brand" onclick="show('home')">
+<svg viewBox="0 0 1000 1000"><rect width="1000" height="1000" rx="224" fill="#101E38"/><path d="M 205 620 L 795 545" stroke="#E8EDF5" stroke-width="40" stroke-linecap="round" fill="none"/><path d="M 205 620 C 330 385, 630 300, 795 545" stroke="url(#hg)" stroke-width="40" stroke-linecap="round" fill="none"/><defs><linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3EE6C1"/><stop offset="1" stop-color="#5B8CFF"/></linearGradient></defs><circle cx="795" cy="545" r="40" fill="#3EE6C1"/></svg>
+<b>Drift<span>AI</span></b></div>
+<div class="mkt closed" id="mkt"><i></i>NYSE —</div>
+<nav>
+<a class="on" data-p="home">Home</a><a data-p="board">Board</a><a data-p="charts">Charts</a><a data-p="heat">Heatmap</a><a data-p="records">Records</a><a data-p="score">Scorecard</a><a data-p="method">Method</a>
+</nav></div></div>
+
+<div id="home" class="page on">
+<div class="wrap"><div class="hero">
+<div>
+<div class="eyebrow"><i></i>Live on Robinhood Chain · <span id="hn">—</span> stocks tracked</div>
+<h1>The market closes.<br><em>Prices don't.</em></h1>
+<p class="lede">Tokenized stocks trade around the clock — and while Wall Street sleeps, their prices drift from reality. DriftAI measures the gap on every liquid stock token, every minute, and calls the snap-back before the open proves it.</p>
+<div class="clock"><span class="cd mono" id="cd">—</span><span class="cl" id="cdl">…</span></div>
+<div class="ctas"><button class="btn pri" onclick="show('board')">View the live board</button><button class="btn sec" onclick="show('method')">How it works</button></div>
+</div>
+<svg class="heromark" viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg">
+<defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3EE6C1"/><stop offset="1" stop-color="#5B8CFF"/></linearGradient>
+<radialGradient id="gl" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#3EE6C1" stop-opacity="0.8"/><stop offset="1" stop-color="#3EE6C1" stop-opacity="0"/></radialGradient></defs>
+<path d="M 105 520 L 895 445" stroke="#E8EDF5" stroke-width="30" stroke-linecap="round" fill="none" class="draw" style="stroke-dasharray:800;stroke-dashoffset:800;animation:dr 1.4s ease-out forwards"/>
+<path d="M 105 520 C 280 220, 660 130, 895 445" stroke="url(#dg)" stroke-width="30" stroke-linecap="round" fill="none" class="draw" style="stroke-dasharray:1100;stroke-dashoffset:1100;animation:dr 2s ease-out 0.4s forwards"/>
+<circle cx="895" cy="445" r="120" fill="url(#gl)" opacity="0"><animate attributeName="opacity" from="0" to="1" begin="2.2s" dur="0.5s" fill="freeze"/></circle>
+<circle cx="895" cy="445" r="34" fill="#3EE6C1" opacity="0"><animate attributeName="opacity" from="0" to="1" begin="2.2s" dur="0.4s" fill="freeze"/></circle>
+<style>@keyframes dr{to{stroke-dashoffset:0}}</style>
+</svg>
+</div></div>
+<div class="rail"><div class="in" id="rail"></div></div>
+<div class="wrap"><div class="now" id="now" onclick="if(NOWTK)openChart(NOWTK)">
+<div class="nb"><i></i>Right now</div>
+<div class="nh" id="nowh">Reading the board…</div>
+<div class="ns" id="nows"></div></div></div>
+<div class="wrap"><div class="stats">
+<div class="stat"><div class="v" id="s1">—</div><div class="l">Liquid stock tokens tracked</div></div>
+<div class="stat"><div class="v" id="s2">—</div><div class="l">Biggest live drift right now</div></div>
+<div class="stat"><div class="v" id="s3">—</div><div class="l">Readings logged</div></div>
+</div></div>
+</div>
+
+<div id="board" class="page"><div class="wrap"><div class="section">
+<h2 class="stitle">Live board</h2><p class="ssub">Every liquid tokenized stock on Robinhood Chain, ranked by current drift from the real-market price.</p>
+<div class="chips">
+<div class="chip"><div class="cv2" id="c1">—</div><div class="cl">Avg drift (abs)</div></div>
+<div class="chip"><div class="cv2 pos" id="c2">—</div><div class="cl">Live pools</div></div>
+<div class="chip"><div class="cv2" id="c3">—</div><div class="cl">Biggest mover</div></div>
+<div class="chip"><div class="cv2" id="c4">—</div><div class="cl">Premiums vs discounts</div></div>
+</div>
+<table><thead><tr><th>#</th><th>Stock</th><th>Token</th><th>Real</th><th>Drift</th><th>3H trend</th><th>Pool</th></tr></thead><tbody id="rows"></tbody></table>
+<div class="age" id="age"></div></div></div></div>
+
+<div id="charts" class="page"><div class="wrap"><div class="section">
+<h2 class="stitle">Charts</h2><p class="ssub">Token price vs Wall Street, live. Shaded bands are hours the real market is closed.</p>
+<div class="ranges" id="granges"></div><div class="grid" id="grid"></div></div></div></div>
+
+<div id="chart" class="page"><div class="wrap"><div class="section">
+<span id="back">&larr; Back</span>
+<div id="ctitle"></div><div id="cstats"></div>
+<div class="ranges" id="cranges"></div>
+<canvas id="cv" height="380"></canvas>
+<div class="hint">Drag to pan through history · hover for exact prices · ▶ replays the window · ⤓ saves a share card</div>
+<div class="legend"><span><i style="background:#E8EDF5"></i>Wall Street price</span><span><i style="background:linear-gradient(90deg,#3EE6C1,#5B8CFF)"></i>Token price (24/7)</span><span><i style="background:#132036;height:12px;width:18px"></i>Market closed</span></div>
+<div class="age">Live — updates every minute.</div></div></div></div>
+
+<div id="heat" class="page"><div class="wrap"><div class="section">
+<h2 class="stitle">Heatmap</h2><p class="ssub">The whole market at a glance — colour is drift direction, intensity is size. Glowing tiles are moving hardest.</p>
+<div class="hm" id="hm"></div></div></div></div>
+
+<div id="records" class="page"><div class="wrap"><div class="section">
+<h2 class="stitle">Records</h2><p class="ssub">The biggest dislocations DriftAI has ever measured. Click one to travel to that moment.</p>
+<div id="reclist"></div></div></div></div>
+
+<div id="score" class="page"><div class="wrap"><div class="section">
+<h2 class="stitle">Scorecard</h2><p class="ssub">Every call, timestamped before the outcome. Hits and misses alike.</p>
+<div class="empty">No calls yet — DriftAI hasn't started speaking. When it does, every call lands here looking like this:</div>
+<div class="ghost">
+<div class="gh"><span class="tk">GME &nbsp;<span class="mono mut">+3.44% premium called</span></span><span class="badge">CONVERGED ✓</span></div>
+<p class="mono">called: Sun 10:17 UTC — token $19.82 vs real $19.16<br>resolved: Mon 14:38 UTC — drift +0.46% after open</p>
+<p style="margin-top:10px">Example format. Calls are only made on actively-traded pools, and graded against the next market open.</p>
+</div></div></div></div>
+
+<div id="method" class="page"><div class="wrap"><div class="section">
+<h2 class="stitle">Method</h2><p class="ssub">How DriftAI measures mispricing in tokenized equities — the full methodology.</p>
+<div class="mcards">
+<div class="card">
+<svg viewBox="0 0 44 44"><path d="M4 32 L40 26" stroke="#E8EDF5" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M4 32 C 14 14, 30 10, 40 26" stroke="#3EE6C1" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="40" cy="26" r="3.5" fill="#3EE6C1"/></svg>
+<h3>The two markets</h3><p>Each Stock Token on Robinhood Chain is a tokenized equity — a claim on real shares held by a licensed custodian — trading continuously against USDG on automated market maker (AMM) pools. The underlying equity trades on its primary venue (Nasdaq/NYSE) only during defined sessions: pre-market, regular hours, and after-hours. Two venues, one asset, radically different liquidity and hours.</p></div>
+<div class="card">
+<svg viewBox="0 0 44 44"><rect x="4" y="18" width="36" height="8" rx="2" fill="none" stroke="#5B8CFF" stroke-width="2.5"/><path d="M10 18 v8 M16 18 v8 M22 18 v8 M28 18 v8 M34 18 v8" stroke="#5B8CFF" stroke-width="1.5" opacity="0.6"/></svg>
+<h3>Drift, defined</h3><p>Drift is the token&rsquo;s basis to its underlying: <span class="mono">(P&#8202;token &minus; P&#8202;ref) / P&#8202;ref</span>, expressed in percent. Positive drift is a premium, negative a discount. P&#8202;token is the on-chain spot price of the deepest USDG pool; P&#8202;ref is the freshest primary-market print available, including extended sessions. Both are sampled every 60 seconds, around the clock.</p></div>
+<div class="card">
+<svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="16" fill="none" stroke="#3EE6C1" stroke-width="2.5"/><path d="M22 12 v10 l7 5" stroke="#3EE6C1" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+<h3>Why drift exists</h3><p>During primary sessions, arbitrageurs keep the two venues in line — any gap is a riskless trade against custodial redemption, so it closes fast. Outside those sessions the tether goes slack: the token becomes the only live market for the equity, and its price is set purely by on-chain order flow in shallow pools. Small flows move thin liquidity a long way. That is where dislocations build.</p></div>
+<div class="card">
+<svg viewBox="0 0 44 44"><path d="M6 34 h32 M6 34 v-6 m8 6 v-14 m8 14 v-22 m8 22 v-10 m8 10 v-16" stroke="#5B8CFF" stroke-width="2.5" stroke-linecap="round"/></svg>
+<h3>Liquidity classification</h3><p>Every reading is tagged by pool activity over the trailing hour. <b>LIVE</b>: five or more swaps — the quote reflects active two-way flow. <b>THIN</b>: at least one swap — directionally informative, sizing unreliable. <b>STALE</b>: zero swaps — the &ldquo;price&rdquo; is the last trade, potentially hours old; apparent drift on a stale pool is usually the reference moving, not the token. Stale quotes are never treated as signal.</p></div>
+<div class="card">
+<svg viewBox="0 0 44 44"><path d="M8 30 C 14 30, 16 14, 22 14 S 30 30, 36 30" fill="none" stroke="#3EE6C1" stroke-width="2.5" stroke-linecap="round"/><path d="M8 22 h28" stroke="#E8EDF5" stroke-width="1.5" stroke-dasharray="3 4"/></svg>
+<h3>Two kinds of dislocation</h3><p>A gap can be noise or information. <b>Flow-driven dislocation</b> — thin-pool order flow with no news behind it — mean-reverts at the next open as arbitrage re-engages; this is DriftAI&rsquo;s core convergence signal. <b>Information-driven repricing</b> — the token reacting to news released while the primary market is shut — is the token leading price discovery, and is expected to persist. Separating the two is the analytical heart of the system: volume context, news flow, and the direction of adjacent tickers all feed the classification.</p></div>
+<div class="card">
+<svg viewBox="0 0 44 44"><rect x="8" y="6" width="28" height="32" rx="4" fill="none" stroke="#3EE6C1" stroke-width="2.5"/><path d="M15 20 l5 5 9-10" stroke="#3EE6C1" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<h3>Call protocol</h3><p>Calls are issued only on LIVE readings that clear a minimum dislocation threshold, and only for convergence toward the underlying — never predictions about the equity itself. Each call is timestamped before the outcome is knowable and graded against the first hour of the next primary session. Results, including misses, are published on the scorecard. No cherry-picking, no deleted calls.</p></div>
+<div class="card">
+<svg viewBox="0 0 44 44"><path d="M22 6 L38 34 H6 Z" fill="none" stroke="#E8D06B" stroke-width="2.5" stroke-linejoin="round"/><path d="M22 17 v9 M22 30.5 v0.5" stroke="#E8D06B" stroke-width="2.5" stroke-linecap="round"/></svg>
+<h3>Known limitations</h3><p>Honest caveats: the reference feed can lag the tape by minutes, so intraday drift under ~0.3% is within measurement noise. Quoted AMM spot is a mid, not an executable price — real fills pay slippage and gas, so small gaps aren&rsquo;t tradeable edge. Corporate actions (dividends, splits) apply via token multipliers and can briefly distort raw comparisons. Coverage is limited to pools meeting a minimum daily volume floor.</p></div>
+<div class="card">
+<svg viewBox="0 0 44 44"><circle cx="15" cy="22" r="9" fill="none" stroke="#5B8CFF" stroke-width="2.5"/><circle cx="29" cy="22" r="9" fill="none" stroke="#3EE6C1" stroke-width="2.5"/></svg>
+<h3>What DriftAI is not</h3><p>Not an oracle feed, not an execution system, and not investment advice. DriftAI is a measurement and publication layer: it observes the basis between two venues, classifies it, and reports it with full auditability. What anyone does with that information is their own decision and risk.</p></div>
+</div></div></div></div>
+
+<div class="wrap"><footer>DriftAI provides informational market observations only. Nothing here is financial, investment, or trading advice. Tokenized equities and on-chain markets carry significant risk. Do your own research.</footer></div>
+
+<canvas id="mist" style="position:fixed;inset:0;pointer-events:none;z-index:50"></canvas>
+
+<script>
+let NOWTK=null,HIST={},ORDER=[],curTk=null,curRange='24H',gridRange='24H',TOTAL=0,panEnd=null,BIG=null,replayId=0;
+const RANGES={'1m':6e4,'5m':3e5,'15m':9e5,'30m':18e5,'1H':36e5,'3H':108e5,'6H':216e5,'12H':432e5,'24H':864e5,'3D':2592e5,'ALL':Infinity};
+function show(p){document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('on',x.dataset.p===p));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  (document.getElementById(p)||document.getElementById('home')).classList.add('on');
+  if(p==='charts')drawGrid();if(p==='board')drawSparks();if(p==='heat')drawHeat();if(p==='records')drawRecs();
+  window.scrollTo(0,0);}
+document.querySelectorAll('nav a').forEach(a=>a.onclick=()=>show(a.dataset.p));
+document.getElementById('back').onclick=()=>show('board');
+function marketOpen(d){const day=d.getUTCDay();if(day===0||day===6)return false;
+  const m=d.getUTCHours()*60+d.getUTCMinutes();return m>=810&&m<1200;}
+function windowPts(tk,range,end){const pts=HIST[tk]||[];if(!pts.length)return[];
+  const e=end??pts[pts.length-1].t;const cut=e-RANGES[range];
+  return pts.filter(p=>p.t>=cut&&p.t<=e);}
+function render(cv,pts,mini){
+  const W=cv.clientWidth||(mini?340:900),H=mini?120:380;
+  cv.width=W*2;cv.height=H*2;
+  const g=cv.getContext('2d');g.setTransform(2,0,0,2,0,0);
+  const P=mini?{l:2,r:2,t:4,b:4}:{l:56,r:16,t:16,b:30};
+  g.clearRect(0,0,W,H);if(pts.length<2)return null;
+  const t0=pts[0].t,t1=pts[pts.length-1].t;
+  let lo=Infinity,hi=-Infinity;for(const p of pts){lo=Math.min(lo,p.tp,p.rp);hi=Math.max(hi,p.tp,p.rp);}
+  const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
+  const X=t=>P.l+(t-t0)/(t1-t0||1)*(W-P.l-P.r);
+  const Y=v=>P.t+(1-(v-lo)/(hi-lo))*(H-P.t-P.b);
+  g.fillStyle='#132036';let s=null;
+  for(let i=0;i<pts.length;i++){const open=marketOpen(new Date(pts[i].t));
+    if(!open&&s===null)s=pts[i].t;
+    if((open||i===pts.length-1)&&s!==null){g.fillRect(X(s),P.t,X(pts[i].t)-X(s),H-P.t-P.b);s=null;}}
+  if(!mini){g.strokeStyle='#1B2A44';g.fillStyle='#7A8699';g.font='10px ui-monospace';g.textAlign='right';
+    for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4,y=Y(v);
+      g.beginPath();g.moveTo(P.l,y);g.lineTo(W-P.r,y);g.stroke();g.fillText('$'+v.toFixed(v>500?0:2),P.l-6,y+3);}
+    g.textAlign='center';const span=t1-t0,step=span>1728e5?864e5:span>432e5?216e5:span>72e5?36e5:9e5;
+    for(let t=Math.ceil(t0/step)*step;t<t1;t+=step){const d=new Date(t);
+      g.fillText(step>=864e5?d.toLocaleDateString(undefined,{weekday:'short'}):(step>=36e5?d.getHours()+':00':d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')),X(t),H-10);}}
+  function line(key,style){g.strokeStyle=style;g.lineWidth=mini?1.5:2;g.lineJoin='round';g.beginPath();
+    pts.forEach((p,i)=>{const x=X(p.t),y=Y(p[key]);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();}
+  line('rp','#E8EDF5');
+  const gr=g.createLinearGradient(P.l,0,W-P.r,0);gr.addColorStop(0,'#3EE6C1');gr.addColorStop(1,'#5B8CFF');
+  line('tp',gr);
+  return{pts,X,Y,W,H,P,g};
+}
+function drawSparks(){
+  ORDER.forEach(tk=>{const cv=document.getElementById('sp_'+tk);if(!cv)return;
+    const pts=windowPts(tk,'3H');const W=84,H=26;cv.width=W*2;cv.height=H*2;
+    const g=cv.getContext('2d');g.setTransform(2,0,0,2,0,0);g.clearRect(0,0,W,H);
+    if(pts.length<2)return;
+    let lo=Infinity,hi=-Infinity;for(const p of pts){lo=Math.min(lo,p.dr);hi=Math.max(hi,p.dr);}
+    const pad=(hi-lo)*0.15||0.05;lo-=pad;hi+=pad;
+    const last=pts[pts.length-1].dr;
+    g.strokeStyle=last>=0?'#3EE6C1':'#FF7A90';g.lineWidth=1.5;g.lineJoin='round';g.beginPath();
+    pts.forEach((p,i)=>{const x=(i/(pts.length-1))*W;const y=H-((p.dr-lo)/(hi-lo))*H;
+      i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+    if(lo<0&&hi>0){const zy=H-((0-lo)/(hi-lo))*H;g.strokeStyle='#2A3C5C';g.lineWidth=0.5;
+      g.beginPath();g.moveTo(0,zy);g.lineTo(W,zy);g.stroke();}});
+}
+function rangeBtns(el,cur,fn,full){
+  el.innerHTML=Object.keys(RANGES).map(r=>`<button class="${r===cur?'on':''}" onclick="${fn}('${r}')">${r}</button>`).join('')
+  +(full?`<button class="act" onclick="replay()">▶ Replay</button><button class="act" onclick="shareCard()">⤓ Share</button><button class="livebtn" onclick="goLive()" style="display:${panEnd!==null?'inline-block':'none'}">&#10554; LIVE</button>`:'');}
+function goLive(){panEnd=null;replayId++;drawBig();}
+function setRange(r){curRange=r;replayId++;drawBig();}
+function setGridRange(r){gridRange=r;drawGrid();}
+function drawBig(hover){if(!curTk)return;
+  rangeBtns(document.getElementById('cranges'),curRange,'setRange',true);
+  const pts=windowPts(curTk,curRange,panEnd);
+  document.getElementById('ctitle').textContent=curTk+' — token vs Wall Street';
+  if(pts.length){const l=pts[pts.length-1];
+    document.getElementById('cstats').textContent='Token $'+l.tp.toFixed(2)+' · Real $'+l.rp.toFixed(2)+' · Drift '+(l.dr>0?'+':'')+l.dr.toFixed(2)+'% · '+pts.length+' readings'+(panEnd!==null?' · viewing history':'');}
+  BIG=render(document.getElementById('cv'),pts,false);
+  if(BIG&&hover!=null)drawHover(hover);
+}
+function drawHover(x){
+  if(!BIG)return;const{pts,X,Y,W,H,P,g}=BIG;
+  let best=0,bd=Infinity;
+  for(let i=0;i<pts.length;i++){const d=Math.abs(X(pts[i].t)-x);if(d<bd){bd=d;best=i;}}
+  const p=pts[best],px=X(p.t);
+  g.strokeStyle='rgba(232,237,245,0.35)';g.lineWidth=1;g.setLineDash([4,4]);
+  g.beginPath();g.moveTo(px,P.t);g.lineTo(px,H-P.b);g.stroke();g.setLineDash([]);
+  g.fillStyle='#E8EDF5';g.beginPath();g.arc(px,Y(p.rp),3.5,0,7);g.fill();
+  g.fillStyle='#3EE6C1';g.beginPath();g.arc(px,Y(p.tp),3.5,0,7);g.fill();
+  const d=new Date(p.t);
+  const lines=[d.toLocaleDateString(undefined,{weekday:'short'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+    'token  $'+p.tp.toFixed(2),'real   $'+p.rp.toFixed(2),'drift  '+(p.dr>0?'+':'')+p.dr.toFixed(2)+'%'];
+  g.font='11px ui-monospace';
+  const bw=Math.max(...lines.map(l=>g.measureText(l).width))+20,bh=lines.length*16+14;
+  let bx=px+12;if(bx+bw>W-P.r)bx=px-bw-12;let by=P.t+8;
+  g.fillStyle='rgba(10,19,34,0.92)';g.strokeStyle='#2A3C5C';g.lineWidth=1;
+  g.beginPath();g.roundRect(bx,by,bw,bh,8);g.fill();g.stroke();
+  lines.forEach((l,i)=>{g.fillStyle=i===0?'#7A8699':(i===3?(p.dr>=0?'#3EE6C1':'#FF7A90'):'#E8EDF5');
+    g.textAlign='left';g.fillText(l,bx+10,by+18+i*16);});
+}
+function replay(){
+  if(!curTk)return;const pts=windowPts(curTk,curRange,panEnd);
+  if(pts.length<10)return;
+  const id=++replayId;const dur=9000,start=performance.now();
+  function step(now){
+    if(id!==replayId)return;
+    const f=Math.min(1,(now-start)/dur);
+    const n=Math.max(2,Math.floor(pts.length*f));
+    BIG=render(document.getElementById('cv'),pts.slice(0,n),false);
+    if(f<1)requestAnimationFrame(step);else drawBig();}
+  requestAnimationFrame(step);
+}
+function shareCard(){
+  if(!curTk)return;const pts=windowPts(curTk,curRange,panEnd);
+  if(pts.length<2)return;
+  const l=pts[pts.length-1];
+  const c=document.createElement('canvas');c.width=1200;c.height=675;
+  const g=c.getContext('2d');
+  g.fillStyle='#0A1322';g.fillRect(0,0,1200,675);
+  const bg=g.createLinearGradient(0,0,1200,675);
+  bg.addColorStop(0,'rgba(62,230,193,0.07)');bg.addColorStop(1,'rgba(91,140,255,0.07)');
+  g.fillStyle=bg;g.fillRect(0,0,1200,675);
+  // mark
+  g.save();g.translate(60,44);g.scale(0.055,0.055);
+  g.lineCap='round';g.lineWidth=70;
+  g.strokeStyle='#E8EDF5';g.beginPath();g.moveTo(205,620);g.lineTo(795,545);g.stroke();
+  const mg=g.createLinearGradient(205,0,795,0);mg.addColorStop(0,'#3EE6C1');mg.addColorStop(1,'#5B8CFF');
+  g.strokeStyle=mg;g.beginPath();g.moveTo(205,620);g.bezierCurveTo(330,385,630,300,795,545);g.stroke();
+  g.fillStyle='#3EE6C1';g.beginPath();g.arc(795,545,60,0,7);g.fill();g.restore();
+  g.font='600 30px Space Grotesk,Inter,sans-serif';g.fillStyle='#E8EDF5';g.fillText('DriftAI',122,84);
+  g.font='500 20px ui-monospace';g.fillStyle='#7A8699';g.textAlign='right';
+  g.fillText(new Date(l.t).toUTCString().slice(0,22)+' UTC',1140,80);g.textAlign='left';
+  // headline
+  g.font='700 64px Space Grotesk,Inter,sans-serif';g.fillStyle='#E8EDF5';
+  g.fillText(curTk,60,180);
+  const dtxt=(l.dr>0?'+':'')+l.dr.toFixed(2)+'%';
+  g.fillStyle=l.dr>=0?'#3EE6C1':'#FF7A90';
+  g.fillText(dtxt,60+g.measureText(curTk).width+95,180);
+  g.font='700 64px Space Grotesk,Inter,sans-serif';
+  g.font='500 22px ui-monospace';g.fillStyle='#7A8699';
+  g.fillText('token $'+l.tp.toFixed(2)+'   ·   wall street $'+l.rp.toFixed(2)+'   ·   '+(l.dr>=0?'premium':'discount'),62,218);
+  // chart
+  const tmp=document.createElement('canvas');tmp.height=380;
+  document.body.appendChild(tmp);tmp.style.cssText='position:fixed;left:-9999px;width:1080px';
+  render(tmp,pts,false);
+  g.drawImage(tmp,0,0,tmp.width,tmp.height,60,250,1080,340);
+  document.body.removeChild(tmp);
+  g.font='500 17px ui-monospace';g.fillStyle='#57627A';
+  g.fillText('robinhood chain stock tokens · the market closes, prices don\'t · not financial advice',60,638);
+  const a=document.createElement('a');
+  a.download='driftai-'+curTk.toLowerCase()+'-'+new Date(l.t).toISOString().slice(0,16).replace(/[:T]/g,'-')+'.png';
+  a.href=c.toDataURL('image/png');a.click();
+}
+function openChart(tk,end,range){curTk=tk;panEnd=end??null;if(range)curRange=range;replayId++;show('chart');drawBig();}
+function drawGrid(){
+  rangeBtns(document.getElementById('granges'),gridRange,'setGridRange',false);
+  const g=document.getElementById('grid');
+  g.innerHTML=ORDER.map(tk=>{const l=(HIST[tk]||[]).slice(-1)[0];if(!l)return'';
+    const c=l.dr>=0?'pos':'neg';
+    return `<div class="mini" onclick="openChart('${tk}')"><div class="mh"><span class="tk">${tk}</span><span class="${c} mono">${l.dr>0?'+':''}${l.dr.toFixed(2)}%</span></div><div class="mp mono">$${l.tp.toFixed(2)}</div><canvas id="m_${tk}" height="120"></canvas></div>`;}).join('');
+  ORDER.forEach(tk=>{const cv=document.getElementById('m_'+tk);if(cv)render(cv,windowPts(tk,gridRange),true);});}
+function drawHeat(){
+  const el=document.getElementById('hm');
+  el.innerHTML=ORDER.map(tk=>{const l=(HIST[tk]||[]).slice(-1)[0];if(!l)return'';
+    const pos=l.dr>=0,inten=Math.min(1,Math.abs(l.dr)/2);
+    const base=pos?'62,230,193':'255,122,144';
+    const bgc='rgba('+base+','+(0.09+inten*0.38)+')';
+    const bdc='rgba('+base+','+(0.25+inten*0.5)+')';
+    return `<div class="tile ${Math.abs(l.dr)>1?'hot':''}" style="background:${bgc};border-color:${bdc}" onclick="openChart('${tk}')">
+      <div class="t1">${tk}</div><div class="t2 ${pos?'pos':'neg'}">${l.dr>0?'+':''}${l.dr.toFixed(2)}%</div><div class="t3">$${l.tp.toFixed(2)}</div></div>`;}).join('');
+}
+function drawRecs(){
+  const inSet=new Set(ORDER);const best={};
+  for(const tk in HIST){if(!inSet.has(tk))continue;
+    for(const p of HIST[tk]){if(p.cf==='STALE')continue;
+      if(!best[tk]||Math.abs(p.dr)>Math.abs(best[tk].dr))best[tk]=p;}}
+  const recs=Object.entries(best).sort((a,b)=>Math.abs(b[1].dr)-Math.abs(a[1].dr)).slice(0,10);
+  document.getElementById('reclist').innerHTML=recs.map(([tk,p],i)=>{
+    const d=new Date(p.t);
+    return `<div class="rec" onclick="openChart('${tk}',${p.t+RANGES['3H']},'6H')">
+      <div class="rk">${i+1}</div>
+      <div class="rt"><div class="a">${tk}</div>
+      <div class="b">${d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · token $${p.tp.toFixed(2)} vs real $${p.rp.toFixed(2)}</div></div>
+      <div class="rv ${p.dr>=0?'pos':'neg'}">${p.dr>0?'+':''}${p.dr.toFixed(2)}%</div></div>`;}).join('')
+    ||'<div class="empty">Records build as data accumulates.</div>';
+}
+(function(){
+  const cv=document.getElementById('cv');
+  let dragging=false,sx=0,sEnd=0;
+  cv.addEventListener('pointerdown',e=>{if(curRange==='ALL')return;
+    replayId++;dragging=true;sx=e.clientX;
+    const pts=HIST[curTk]||[];sEnd=panEnd??(pts.length?pts[pts.length-1].t:0);
+    cv.classList.add('drag');cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointermove',e=>{
+    const r=cv.getBoundingClientRect(),x=(e.clientX-r.left);
+    if(dragging){const dx=e.clientX-sx;
+      const pts=HIST[curTk]||[];if(!pts.length)return;
+      const plotW=r.width-72;const ms=RANGES[curRange];
+      let ne=sEnd-(dx/plotW)*ms;
+      const minE=pts[0].t+Math.min(ms,pts[pts.length-1].t-pts[0].t);
+      ne=Math.max(minE,Math.min(pts[pts.length-1].t,ne));
+      panEnd=(ne>=pts[pts.length-1].t-3e4)?null:ne;
+      drawBig();}
+    else drawBig(x);});
+  cv.addEventListener('pointerup',e=>{dragging=false;cv.classList.remove('drag');});
+  cv.addEventListener('pointerleave',e=>{if(!dragging)drawBig();});
+  cv.addEventListener('wheel',e=>{
+    const pts=HIST[curTk]||[];if(!pts.length||curRange==='ALL')return;
+    const d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:(e.shiftKey?e.deltaY:0);
+    if(!d)return;e.preventDefault();replayId++;
+    const r=cv.getBoundingClientRect();const ms=RANGES[curRange];
+    let ne=(panEnd??pts[pts.length-1].t)+(d/(r.width-72))*ms;
+    const minE=pts[0].t+Math.min(ms,pts[pts.length-1].t-pts[0].t);
+    ne=Math.max(minE,Math.min(pts[pts.length-1].t,ne));
+    panEnd=(ne>=pts[pts.length-1].t-3e4)?null:ne;drawBig();},{passive:false});
+})();
+// drift clock
+function tickClock(){
+  const now=new Date();const cd=document.getElementById('cd'),cdl=document.getElementById('cdl');
+  const openNow=marketOpen(now);
+  let target=new Date(now);
+  if(openNow){target.setUTCHours(20,0,0,0);
+    const ms=target-now,h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);
+    cd.textContent=h+'h '+String(m).padStart(2,'0')+'m '+String(s).padStart(2,'0')+'s';
+    cdl.textContent='until NYSE closes — then prices go unsupervised';}
+  else{
+    if(now.getUTCHours()*60+now.getUTCMinutes()>=810)target.setUTCDate(target.getUTCDate()+1);
+    while(target.getUTCDay()===0||target.getUTCDay()===6)target.setUTCDate(target.getUTCDate()+1);
+    target.setUTCHours(13,30,0,0);
+    const ms=target-now,h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);
+    cd.textContent=h+'h '+String(m).padStart(2,'0')+'m '+String(s).padStart(2,'0')+'s';
+    cdl.textContent='of unsupervised prices until NYSE reopens';}
+}
+setInterval(tickClock,1000);tickClock();
+async function load(){
+  const txt=await (await fetch('drift.csv?'+Date.now())).text();
+  const lines=txt.trim().split('\n').slice(1);TOTAL=lines.length;
+  const latest={};let lastTs='';HIST={};
+  for(const l of lines){const[ts,tk,tp,rp,dr,cf]=l.split(',');
+    if(!tk||isNaN(+dr))continue;
+    latest[tk]={ts,tp:+tp,rp:+rp,dr:+dr,cf:cf||''};lastTs=ts;
+    (HIST[tk]=HIST[tk]||[]).push({t:+new Date(ts),tp:+tp,rp:+rp,dr:+dr,cf:cf||''});}
+  const fresh=([,v])=>(new Date(lastTs)-new Date(v.ts))<900000;
+  const rows=Object.entries(latest).filter(e=>fresh(e)&&!isNaN(e[1].dr))
+    .sort((a,b)=>Math.abs(b[1].dr)-Math.abs(a[1].dr));
+  ORDER=rows.map(([tk])=>tk);
+  document.getElementById('rows').innerHTML=rows.map(([tk,v],i)=>{
+    const c=v.dr>=0?'pos':'neg';
+    const tag=['LIVE','THIN','STALE'].includes(v.cf)?`<span class="tag ${v.cf}">${v.cf}</span>`:'';
+    return `<tr onclick="openChart('${tk}')"><td class="mono">${i+1}</td><td class="tk">${tk}</td><td class="mono">$${v.tp.toFixed(2)}</td><td class="mono">$${v.rp.toFixed(2)}</td><td class="${c} mono">${v.dr>0?'+':''}${v.dr.toFixed(2)}%</td><td><canvas class="spark" id="sp_${tk}"></canvas></td><td>${tag}</td></tr>`;
+  }).join('');
+  document.getElementById('age').textContent='Last reading: '+new Date(lastTs).toLocaleString()+' — refreshes automatically';
+  const open=marketOpen(new Date(lastTs));
+  const mkt=document.getElementById('mkt');
+  mkt.className='mkt '+(open?'open':'closed');
+  mkt.innerHTML='<i></i>NYSE '+(open?'OPEN':'CLOSED');
+  if(rows.length){
+    const avg=rows.reduce((a,[,v])=>a+Math.abs(v.dr),0)/rows.length;
+    document.getElementById('c1').textContent=avg.toFixed(2)+'%';
+    document.getElementById('c2').textContent=rows.filter(([,v])=>v.cf==='LIVE').length+' / '+rows.length;
+    const[bt,bv]=rows[0];
+    const c3=document.getElementById('c3');c3.textContent=bt+' '+(bv.dr>0?'+':'')+bv.dr.toFixed(2)+'%';
+    c3.className='cv2 '+(bv.dr>=0?'pos':'neg');
+    const ups=rows.filter(([,v])=>v.dr>0).length;
+    document.getElementById('c4').textContent=ups+' ↑ · '+(rows.length-ups)+' ↓';}
+  document.getElementById('hn').textContent=rows.length;
+  document.getElementById('s1').textContent=rows.length;
+  document.getElementById('s3').textContent=TOTAL.toLocaleString();
+  const liveRows=rows.filter(([,v])=>v.cf==='LIVE');
+  if(liveRows.length){const[t,v]=liveRows[0];
+    const el=document.getElementById('s2');el.textContent=t+' '+(v.dr>0?'+':'')+v.dr.toFixed(2)+'%';
+    el.className='v '+(v.dr>=0?'pos':'neg');}
+  // Now panel
+  const nh=document.getElementById('nowh'),ns=document.getElementById('nows');
+  const sig=liveRows.filter(([,v])=>Math.abs(v.dr)>=0.3);
+  const avg2=rows.length?rows.reduce((a,[,v])=>a+Math.abs(v.dr),0)/rows.length:0;
+  if(sig.length){const[t,v]=sig[0];NOWTK=t;
+    nh.innerHTML=t+' token is trading <span class="'+(v.dr>=0?'pos':'neg')+'">'+(v.dr>0?'+':'')+v.dr.toFixed(2)+'%</span> '+(v.dr>=0?'rich of':'below')+' Wall Street on live volume — the biggest active dislocation on the board.';
+  }else{NOWTK=null;
+    nh.textContent='The board is quiet — no live dislocations above the noise floor right now. That itself is information: arbitrage is doing its job.';}
+  ns.textContent=(open?'NYSE is open — the tether is tight':'NYSE is closed — prices are unsupervised')+' · '+liveRows.length+' live pools of '+rows.length+' · avg |drift| '+avg2.toFixed(2)+'%';
+  const items=rows.map(([tk,v])=>`<span><b>${tk}</b><span class="${v.dr>=0?'pos':'neg'}">${v.dr>0?'+':''}${v.dr.toFixed(2)}%</span></span>`).join('');
+  document.getElementById('rail').innerHTML=items+items;
+  if(document.getElementById('chart').classList.contains('on')&&panEnd===null)drawBig();
+  if(document.getElementById('charts').classList.contains('on'))drawGrid();
+  if(document.getElementById('board').classList.contains('on'))drawSparks();
+  if(document.getElementById('heat').classList.contains('on'))drawHeat();
+  if(document.getElementById('records').classList.contains('on'))drawRecs();
+}
+load();setInterval(load,60000);
+(function(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  if(matchMedia('(pointer: coarse)').matches)return;
+  const cv=document.getElementById('mist'),g=cv.getContext('2d');
+  let W,H;function size(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  size();addEventListener('resize',size);
+  const P=[];let mx=-100,my=-100,px=-100,py=-100;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  function tick(){
+    g.clearRect(0,0,W,H);
+    const dx=mx-px,dy=my-py,d=Math.hypot(dx,dy);
+    if(d>2&&P.length<90){const n=Math.min(3,Math.ceil(d/12));
+      for(let i=0;i<n;i++){const f=i/n;
+        P.push({x:px+dx*f+(Math.random()-0.5)*6,y:py+dy*f+(Math.random()-0.5)*6,
+          r:7+Math.random()*10,a:0.22,vx:(Math.random()-0.5)*0.4,vy:(Math.random()-0.5)*0.4-0.15,
+          hue:Math.random()<0.5?'62,230,193':'91,140,255'});}}
+    px=mx;py=my;
+    g.globalCompositeOperation='lighter';
+    for(let i=P.length-1;i>=0;i--){const p=P[i];
+      p.x+=p.vx;p.y+=p.vy;p.r+=0.55;p.a*=0.94;
+      if(p.a<0.008){P.splice(i,1);continue;}
+      const grd=g.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+      grd.addColorStop(0,'rgba('+p.hue+','+p.a+')');
+      grd.addColorStop(1,'rgba('+p.hue+',0)');
+      g.fillStyle=grd;g.beginPath();g.arc(p.x,p.y,p.r,0,7);g.fill();}
+    g.globalCompositeOperation='source-over';
+    requestAnimationFrame(tick);}
+  tick();
+})();
+</script></body></html>
